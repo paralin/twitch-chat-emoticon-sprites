@@ -32,6 +32,7 @@ var smileyIndex = 1;
 argv["_"].forEach(function(channel) {
     urls.push(TWITCH_EMOTES_CHANNEL_URL.replace(":channel", channel));
 });
+
 // check if global
 if(argv["g"]) {
     urls.push(TWITCH_EMOTES_GLOBAL_URL);
@@ -135,15 +136,21 @@ function generateSprites() {
             }
         });
 
+        var iconsl = Object.keys(icons).sort().map(function(o) { return path.basename(o, path.extname(o)); });
+
         // generate showcase
         if(argv["s"]) {
             var template = swig.compileFile(__dirname + "/src/showcase.html.swig");
             var output = template({
-                icons: Object.keys(icons).sort().map(function(o) { return path.basename(o, path.extname(o)); })
+                icons: iconsl
             });
 
             fs.writeFileSync("showcase.html", output);
             console.log("Showcase generated");
+        }
+
+        if(argv["j"]){
+          fs.writeFileSync("icons.json", JSON.stringify(iconsl));
         }
 
         // no cleanup?
