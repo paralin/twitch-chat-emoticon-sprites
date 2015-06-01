@@ -151,6 +151,14 @@ function generateSprites() {
 
         if(argv["j"]){
           fs.writeFileSync("icons.json", JSON.stringify(iconsl));
+          iconsw = [];
+          data = fs.readFileSync(__dirname + "/assets/stylesheets/twitch-emoticons.css");
+          var reg = /(width: )(\d+)(px;)/g;
+          while(matches = reg.exec(data))
+          {
+            iconsw.push(parseInt(matches[2]));
+          }
+          fs.writeFileSync("iconswidths.json", JSON.stringify(iconsw));
         }
 
         // no cleanup?
