@@ -60,12 +60,13 @@ urls.forEach(function(url) {
                     var emoteUrl;
 
                     if(!regex.match(/^[a-zA-Z][a-zA-Z0-9-_]*$/))  {
-                        regex = "smiley-" + smileyIndex++;
+                      console.log(regex+" doesn't match.");
+                      regex = "smiley-" + smileyIndex++;
+                      return;
                     }
 
                     if(emote["url"]) {
                         emoteUrl = emote["url"]
-
                     } else {
                         // global icon has different json format
                         emoteUrl = emote["images"][0]["url"];
