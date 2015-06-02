@@ -59,7 +59,11 @@ urls.forEach(function(url) {
                     var regex = emote["regex"];
                     var emoteUrl;
 
-                    if(!regex.match(/^[a-zA-Z][a-zA-Z0-9-_]*$/))  {
+                    if(regex === "4Head")
+                    {
+                      console.log("special exception for 4Head");
+                      regex = "_4Head";
+                    }else if(!regex.match(/^[a-zA-Z][a-zA-Z0-9-_]*$/))  {
                       console.log(regex+" doesn't match.");
                       regex = "smiley-" + smileyIndex++;
                       return;
