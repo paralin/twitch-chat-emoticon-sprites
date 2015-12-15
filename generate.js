@@ -5,6 +5,7 @@ var argv    = require('minimist')(process.argv.slice(2), { boolean: ["g", "s", "
     path = require('path'),
     queue = require('queue'),
     swig    = require('swig'),
+    imageType = require('image-type'),
     fs = require('fs'),
     status = 0;
 
@@ -21,11 +22,10 @@ var q = queue({
 
 var TWITCH_EMOTES_GLOBAL_URL = "https://api.twitch.tv/kraken/chat/emoticons";
 var TWITCH_EMOTES_CHANNEL_URL = "https://api.twitch.tv/kraken/chat/:channel/emoticons";
+var BTTV_EMOTES_URL = "https://api.betterttv.net/2/emotes/";
 
 var icons = {};
 var urls = [];
-// for non-letter emoticons
-var smileyIndex = 1;
 
 // Parse ARGV
 // parse channel
@@ -37,6 +37,63 @@ argv["_"].forEach(function(channel) {
 if(argv["g"]) {
     urls.push(TWITCH_EMOTES_GLOBAL_URL);
 }
+
+var ttvwl = ["FeelsBadMan", "FeelsGoodMan", "SteamSale", "gabeN", "bUrself", "RarePepe", "CiGrip", "SourPls"];
+
+q.push(function(cb) {
+  https.get(BTTV_EMOTES_URL, function(res) {
+    var body = '';
+    res.on('data', function(chunk){ body += chunk; });
+    res.on('end', function(a,b){
+      if(res.statusCode != 200)
+      {
+        console.log("Reading URL: " + url + " ERROR");
+        cb();
+        return;
+      }
+
+      var jsonResponse = JSON.parse(body);
+      jsonResponse["emotes"].forEach(function(emote) {
+        var regex = emote["code"];
+        var emoteUrl;
+
+        if(!regex.match(/^[a-zA-Z][a-zA-Z0-9-_]*$/)){ //|| ttvwl.indexOf(regex) == -1){
+          console.log(regex+" doesn't match.");
+          return;
+        }
+
+        emoteUrl = "https://cdn.betterttv.net/emote/"+emote.id+"/1x";
+
+        q.push(function(cbb){
+          https.get(emoteUrl, function (res) {
+            res.once('data', function (chunk) {
+              res.destroy();
+              var typ = imageType(chunk);
+              if(typ == null)
+              {
+                console.log(regex+" is not a valid image");
+                return cbb();
+              }
+
+              if(typ.ext !== "png")
+              {
+                console.log(regex+" type "+typ.ext+" isnt usable");
+                return cbb();
+              }
+
+              icons[regex + "." + typ.ext] = emoteUrl;
+              cbb();
+            });
+          });
+        });
+      });
+
+      console.log("Reading URL: " + BTTV_EMOTES_URL + " OK");
+
+      cb();
+    });
+  });
+});
 
 // put every url in queue to crawl json
 urls.forEach(function(url) {
@@ -65,7 +122,6 @@ urls.forEach(function(url) {
                       regex = "_4Head";
                     }else if(!regex.match(/^[a-zA-Z][a-zA-Z0-9-_]*$/))  {
                       console.log(regex+" doesn't match.");
-                      regex = "smiley-" + smileyIndex++;
                       return;
                     }
 
@@ -105,11 +161,21 @@ function downloadIcons() {
     Object.keys(icons).forEach(function(k) {
         q.push(function(cb) {
             var file = fs.createWriteStream(__dirname + "/tmp/" + k, { flags: 'w' });
-            var request = http.get(icons[k], function(response) {
-                response.pipe(file);
-                console.log("Downloaded: " + k);
-                cb();
-            });
+
+            if(!(/^http:\/\//.test(icons[k])))
+            {
+              var reqest = https.get(icons[k], function(response) {
+                  response.pipe(file);
+                  console.log("Downloaded: " + k);
+                  cb();
+              });
+            }else{
+              var request = http.get(icons[k], function(response) {
+                  response.pipe(file);
+                  console.log("Downloaded: " + k);
+                  cb();
+              });
+            }
         });
     });
 
